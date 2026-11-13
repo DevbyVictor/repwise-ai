@@ -93,11 +93,11 @@
     const weekVolume = week.reduce((n,s) => n + volume(s),0), previousVolume = previous.reduce((n,s) => n + volume(s),0);
     return { week, weekVolume, previousVolume, delta: previousVolume ? Math.round((weekVolume / previousVolume - 1) * 100) : null, total: state.sessions.length };
   }
-  function propose(state, params) {
+  function propose(state, params, generated) {
     if (!params.goal || !params.level || !Number.isInteger(+params.frequency) || +params.frequency < 1 || +params.frequency > 7 || +params.duration < 15 || +params.duration > 120) throw Error('Informe objetivo, nível, frequência e duração de 15 a 120 minutos.');
     const short = +params.duration <= 30;
     const chosen = short ? ['legpress','row','bench'] : ['legpress','row','bench','lateral','curl'];
-    const p = { id: uid(), status: 'pending', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now()+86400000).toISOString(), params: clone(params), workout: { name: 'Full body · sugestão', subtitle: `${params.goal} · ${params.duration} min`, style: 'pull', origin: 'ai', items: chosen.map(id => item(id, params.level === 'Iniciante' ? 2 : 3, 10, 0)) } };
+    const p = { id: uid(), status: 'pending', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now()+86400000).toISOString(), params: clone(params), workout: generated ? clone(generated) : { name: 'Full body · sugestão', subtitle: `${params.goal} · ${params.duration} min`, style: 'pull', origin: 'ai', items: chosen.map(id => item(id, params.level === 'Iniciante' ? 2 : 3, 10, 0)) } };
     state.proposals.push(p); return p;
   }
   function applyProposal(state, id, edited) {
@@ -118,14 +118,14 @@
     if (/maxim|extrem|anabol|esteroid|sem descanso|ignorar.*dor/.test(q)) return { category: 'risk', text: 'Não vou propor práticas extremas ou tentativas de carga máxima sem acompanhamento. Você pode usar o registro para conversar sobre a execução e o planejamento com um profissional de Educação Física.' };
     if (/crie|criar|monte|montar|sugest|troqu|substitu|alter|apague|exclu/.test(q)) return { category: 'proposal', text: 'Posso preparar uma ficha demonstrativa. Use “Gerar sugestão” para informar objetivo, experiência, frequência e tempo disponível. A ficha só será criada depois de você revisar e confirmar. Pedidos para alterar ou excluir fichas existentes devem ser feitos em Meus treinos.' };
     if (/evol|histor|progres|meu.*supino|minha.*carga|volume/.test(q)) {
-      if (!state.consent) return { category: 'consent', text: 'Para analisar seus registros, preciso da sua autorização em “Usar meu histórico”. Sem ela, posso explicar como consultar a aba Evolução. Nenhum dado é enviado para fora do navegador nesta demonstração.' };
+      if (!state.consent) return { category: 'consent', text: 'Para analisar seus registros, preciso da sua autorização em “Usar meu histórico”. Sem ela, posso explicar como consultar a aba Evolução. A autorização pode ser revogada no painel do assistente.' };
       const match = exercises.find(e => q.includes(normalize(e.name))) || (q.includes('supino') ? exercise('bench') : null);
       if (!match) return { category: 'clarify', text: 'Qual exercício você quer analisar? Tente “Como estou evoluindo no supino reto com barra?”. Assim uso somente os registros relevantes à sua pergunta.' };
       const points = series(state, match.id, 56);
       if (points.length < 2) return { category: 'history', text: `Ainda não há pelo menos duas sessões de ${match.name} nas últimas 8 semanas para comparar. Registre novos treinos para acompanhar a evolução.` };
       return { category: 'history', text: `Com base em ${points.length} sessões registradas de ${match.name} nas últimas 8 semanas, a maior carga por sessão passou de ${points[0].load.toLocaleString('pt-BR')} kg para ${points.at(-1).load.toLocaleString('pt-BR')} kg. O volume somado foi ${points.reduce((n,p) => n+p.volume,0).toLocaleString('pt-BR')} kg. Esses registros descrevem seu histórico e não determinam uma carga segura para o próximo treino.`, context: `${match.name} · ${points.length} sessões · sem identificadores pessoais` };
     }
-    if (/como.*(us|registr|ficha)|aplicativo|plataforma/.test(q)) return { category: 'general', text: 'Em Meus treinos, crie ou escolha uma ficha e toque em Iniciar. Registre carga e repetições e marque cada série concluída. Ao finalizar, revise o resumo e confirme. Seus dados aparecem em Histórico e Evolução, e ficam salvos neste navegador.' };
+    if (/como.*(us|registr|ficha)|aplicativo|plataforma/.test(q)) return { category: 'general', text: 'Em Meus treinos, crie ou escolha uma ficha e toque em Iniciar. Registre carga e repetições e marque cada série concluída. Ao finalizar, revise o resumo e confirme. Seus dados aparecem em Histórico e Evolução, e ficam salvos na sua conta.' };
     if (/forca|hipertrof|treino|serie|repet|descanso|exercicio/.test(q)) return { category: 'general', text: 'O RepWise ajuda a organizar fichas e comparar séries, repetições e cargas ao longo do tempo. Força e hipertrofia são objetivos relacionados, mas o planejamento depende de contexto e acompanhamento. Nesta versão, as respostas são exemplos fixos: você pode testar uma análise do supino ou gerar uma ficha para revisão.' };
     return { category: 'scope', text: 'Sou o assistente demonstrativo do RepWise. Posso explicar o uso do app, consultar a evolução de um exercício com sua autorização ou preparar uma sugestão de ficha para você revisar. Experimente uma das perguntas sugeridas.' };
   }
