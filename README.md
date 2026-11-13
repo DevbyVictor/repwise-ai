@@ -1,6 +1,6 @@
 # RepWise AI 0.6.0
 
-Aplicação de organização e registro de treinos com banco relacional SQLite, cadastro por e-mail e senha, histórico por usuário e assistente demonstrativo por regras.
+Aplicação de organização e registro de treinos com banco relacional SQLite, cadastro por e-mail e senha, histórico por usuário e assistente de treino com IA local (Ollama).
 
 ## Iniciar
 
@@ -12,6 +12,18 @@ Aplicação de organização e registro de treinos com banco relacional SQLite, 
 Também é possível iniciar com npm start ou node server.mjs. O projeto usa os recursos incluídos no Node.js. A criação do banco e do catálogo acontece na primeira execução.
 
 Entre na demonstração para explorar uma conta temporária com registros fictícios, válida por 24 horas. Para manter seus treinos, crie uma conta com nome, e-mail e senha.
+
+## Assistente de IA (Ollama)
+
+O assistente usa um modelo de linguagem que roda no próprio computador pelo Ollama. Não precisa de chave de API nem de internet depois da instalação.
+
+1. Rode uma vez `npm run ia:instalar`. O comando instala o Ollama (winget no Windows, Homebrew no macOS ou o instalador oficial no Linux), baixa o modelo padrão qwen2.5:0.5b (cerca de 400 MB) e faz uma pergunta de teste. No Windows, se ele pedir, feche e abra o terminal e rode o comando de novo.
+2. Se a instalação automática não funcionar, instale manualmente por https://ollama.com/download e rode `ollama pull qwen2.5:0.5b`.
+3. Deixe o Ollama aberto e inicie o RepWise normalmente. `npm run ia:verificar` confere se o Ollama e o modelo estão prontos.
+
+O contexto de academia enviado ao modelo fica em lib/contexto-academia.json. O servidor junta esse contexto com o perfil do usuário e, somente com autorização, um resumo do histórico. Perguntas sobre dor, sintomas ou práticas extremas recebem respostas fixas e não passam pelo modelo. A ficha sugerida usa apenas exercícios do catálogo, fica com carga zero e só é criada depois da confirmação. Se o Ollama estiver fechado, o assistente responde por regras e o restante do app continua funcionando.
+
+Variáveis opcionais: OLLAMA_MODEL troca o modelo (por exemplo llama3.2:1b ou qwen2.5:1.5b, que respondem melhor e usam mais memória), OLLAMA_URL define o endereço do Ollama e OLLAMA_TIMEOUT_MS define o tempo máximo de resposta.
 
 ## Banco e código
 
@@ -37,6 +49,6 @@ Execute npm test. As suítes cobrem regras de treino, as tabelas do domínio, au
 
 O roteiro tests/auth-ui.check.cjs usa Playwright e Edge para conferir cadastro, acesso em dois contextos, salvamento, falha de conexão, conflito e saída. Para executá-lo, inicie o servidor na porta 5187 e configure REPWISE_PLAYWRIGHT com o caminho do pacote Playwright. REPWISE_BROWSER permite escolher o executável do navegador. Esses recursos são opcionais para os testes de interface.
 
-Na apresentação, demonstre cadastro, criação de ficha, execução de uma série, finalização, histórico e recarregamento. O assistente gera respostas por regras, registra consentimento e feedback e exige confirmação para criar a ficha sugerida. Mensagens, propostas e decisões são persistidas nas tabelas correspondentes.
+Na apresentação, demonstre cadastro, criação de ficha, execução de uma série, finalização, histórico e recarregamento. O assistente responde com IA local, registra consentimento e feedback e exige confirmação para criar a ficha sugerida. Mensagens, propostas e decisões são persistidas nas tabelas correspondentes.
 
-As senhas usam PBKDF2-SHA512 com salt individual. A sessão autenticada dura até sete dias. Recuperação de senha, confirmação de e-mail e integração com um provedor externo de LLM são possibilidades de evolução.
+As senhas usam PBKDF2-SHA512 com salt individual. A sessão autenticada dura até sete dias. Recuperação de senha, confirmação de e-mail e entrada por voz são possibilidades de evolução.

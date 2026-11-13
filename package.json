@@ -6,6 +6,8 @@
   "engines": { "node": ">=22.13.0" },
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test tests/core.test.cjs tests/relacional.test.mjs"
+    "ia:instalar": "node scripts/instalar-ia.mjs",
+    "ia:verificar": "node scripts/instalar-ia.mjs --verificar",
+    "test": "node --test tests/core.test.cjs tests/relacional.test.mjs tests/assistente.test.mjs"
   }
 }

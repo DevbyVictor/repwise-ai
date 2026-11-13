@@ -93,11 +93,11 @@
     const weekVolume = week.reduce((n,s) => n + volume(s),0), previousVolume = previous.reduce((n,s) => n + volume(s),0);
     return { week, weekVolume, previousVolume, delta: previousVolume ? Math.round((weekVolume / previousVolume - 1) * 100) : null, total: state.sessions.length };
   }
-  function propose(state, params) {
+  function propose(state, params, generated) {
     if (!params.goal || !params.level || !Number.isInteger(+params.frequency) || +params.frequency < 1 || +params.frequency > 7 || +params.duration < 15 || +params.duration > 120) throw Error('Informe objetivo, nível, frequência e duração de 15 a 120 minutos.');
     const short = +params.duration <= 30;
     const chosen = short ? ['legpress','row','bench'] : ['legpress','row','bench','lateral','curl'];
-    const p = { id: uid(), status: 'pending', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now()+86400000).toISOString(), params: clone(params), workout: { name: 'Full body · sugestão', subtitle: `${params.goal} · ${params.duration} min`, style: 'pull', origin: 'ai', items: chosen.map(id => item(id, params.level === 'Iniciante' ? 2 : 3, 10, 0)) } };
+    const p = { id: uid(), status: 'pending', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now()+86400000).toISOString(), params: clone(params), workout: generated ? clone(generated) : { name: 'Full body · sugestão', subtitle: `${params.goal} · ${params.duration} min`, style: 'pull', origin: 'ai', items: chosen.map(id => item(id, params.level === 'Iniciante' ? 2 : 3, 10, 0)) } };
     state.proposals.push(p); return p;
   }
   function applyProposal(state, id, edited) {

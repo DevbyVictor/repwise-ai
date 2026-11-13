@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { openDatabase, catalog } from './db/banco.mjs';
 import { handleAuth, sessionUser, json } from './lib/auth.mjs';
 import { handleAccount } from './lib/account-api.mjs';
+import { handleAssistant, ollamaConfig } from './lib/assistente.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT ?? 4173);
@@ -42,6 +43,8 @@ const server = http.createServer(async (req, res) => {
         result = json({ exercises: catalog(db) });
       } else if (/^\/api\/auth\/[a-z]+$/.test(url.pathname)) {
         result = await handleAuth(request, url.pathname.split('/').at(-1), db);
+      } else if (/^\/api\/assistant\/(message|proposal)$/.test(url.pathname)) {
+        result = await handleAssistant(request, url.pathname.split('/').at(-1), sessionUser(request, db), db);
       } else if (url.pathname === '/api/account') {
         result = await handleAccount(request, sessionUser(request, db), db);
       } else {
@@ -88,7 +91,7 @@ server.on('error', error => {
   console.error(error.code === 'EADDRINUSE' ? `A porta ${port} já está em uso.` : error.message);
   process.exitCode = 1;
 });
-server.listen(port, host, () => console.log(`RepWise AI 0.6.0 disponível em ${origin}\nUse Ctrl+C para encerrar.`));
+server.listen(port, host, () => console.log(`RepWise AI 0.6.0 disponível em ${origin}\nAssistente: Ollama em ${ollamaConfig.url} com o modelo ${ollamaConfig.model}\nUse Ctrl+C para encerrar.`));
 function shutdown() {
   clearInterval(timer);
   server.close(() => { db.close(); });
