@@ -1,49 +1,42 @@
-# RepWise AI 0.5
+# RepWise AI 0.6.0
 
-Aplicativo responsivo de treino com cadastro por nome, e-mail e senha, autenticação no servidor, registros em JSON por usuário e temas claro/escuro. O assistente ainda usa respostas simuladas.
+Aplicação de organização e registro de treinos com banco relacional SQLite, cadastro por e-mail e senha, histórico por usuário e assistente demonstrativo por regras.
 
-## Acessar
+## Iniciar
 
-https://repwise-ai.ynk-victor.chatgpt.site
+1. Instale o Node.js 22.13 ou superior.
+2. Extraia todos os arquivos do pacote.
+3. No Windows, abra INICIAR_REPWISE.cmd.
+4. Abra http://127.0.0.1:4173 no navegador.
 
-Toque em **Criar conta**, preencha seu nome, e-mail, senha e confirmação. Contas novas começam sem treinos. Nos próximos acessos, entre com o mesmo e-mail e senha para recuperar seus registros no computador ou no celular. O RepWise não depende de conta ChatGPT.
+Também é possível iniciar com npm start ou node server.mjs. O projeto usa os recursos incluídos no Node.js. A criação do banco e do catálogo acontece na primeira execução.
 
-**Entrar na demonstração** permite explorar dados fictícios sem cadastro. Os dados desse modo ficam apenas no navegador.
+Entre na demonstração para explorar uma conta temporária com registros fictícios, válida por 24 horas. Para manter seus treinos, crie uma conta com nome, e-mail e senha.
 
-A senha é armazenada como hash PBKDF2-SHA512 com salt individual. A sessão dura até sete dias e usa cookie HttpOnly, Secure na publicação e SameSite=Lax. O servidor valida cada operação pela sessão e rejeita origens externas e excesso de tentativas. O botão Sair invalida a sessão no servidor. Não há confirmação de e-mail nem recuperação de senha nesta primeira versão.
+## Banco e código
 
-## Dados em JSON
+O arquivo db/esquema.sql contém o esquema completo. O servidor cria o banco em dados/repwise.sqlite.
 
-O perfil, os treinos e o histórico são serializados em JSON no banco D1 da hospedagem. Assim os dados sobrevivem às atualizações e podem ser acessados em outro aparelho. Não há arquivo JSON público com senhas ou registros. Credenciais e sessões permanecem no servidor; somente o hash do token da sessão fica no banco.
+As 14 tabelas de domínio são usuarios, perfis_usuario, exercicios, fichas_treino, ficha_exercicios, sessoes_treino, sessao_exercicios, series_executadas, consentimentos_ia, conversas_ia, mensagens_ia, propostas_ia, feedbacks_ia e eventos_auditoria. Duas tabelas adicionais controlam sessões de autenticação e tentativas de acesso.
 
-O app avisa quando está salvando, quando falha a conexão e quando há conflito com alterações de outra aba/aparelho. Aguarde **Salvo na sua conta** antes de sair. Abra ou recarregue a página em outro aparelho para carregar a versão atual. Alterações pendentes usam uma cópia local até a sincronização; o app não garante funcionamento offline completo. No Perfil é possível exportar/restaurar backup JSON. Contas locais de versões anteriores não são contas cadastradas no servidor.
+O servidor salva os registros nas tabelas em uma transação, valida a conta pela sessão e rejeita gravações com revisão desatualizada. Para preservar o banco completo, encerre o servidor e copie a pasta dados.
 
-## Desenvolvimento
+Em Perfil, use Exportar backup JSON para obter uma cópia dos registros da conta. Para trazer os registros de uma versão anterior, exporte o backup naquela versão, crie uma conta nesta versão e use Restaurar backup JSON. A restauração substitui os registros de treino da conta autenticada.
 
-Requer Node.js 22.13 ou superior. Execute npm ci, depois prepare o banco local:
+Execute node db/verificar.mjs para verificar a integridade e consultar as quantidades de registros por tabela.
 
-```text
-node scripts/local-db.mjs
-```
+## Uso em outro dispositivo
 
-Execute npm run dev para abrir o endereço local informado. Após instalar as dependências, o iniciador Windows prepara o banco e abre o servidor na porta 4173. O antigo servidor estático server.cjs não executa as APIs de contas. Para compilar para hospedagem, use npm run build.
+O computador que executa o servidor precisa permanecer ligado e acessível ao outro dispositivo. No PowerShell, defina HOST como 0.0.0.0 e APP_ORIGIN como o endereço completo de acesso, por exemplo http://192.168.1.10:4173, antes de executar npm start. Use o endereço real do computador. A mesma origem deve ser usada em todos os acessos.
 
-A publicação usa o fluxo Sites, preserva o projeto em .openai/hosting.json e aplica as migrações hospedadas antes de enviar o servidor. Alterar o código local não altera automaticamente o endereço público.
+A publicação em um servidor exige Node.js compatível, uma pasta persistente para o banco e HTTPS. REPWISE_DB permite definir o caminho do banco, PORT define a porta e APP_ORIGIN define a origem pública. O cookie recebe a proteção Secure quando a origem usa HTTPS.
 
-## Testes
+## Testes e apresentação
 
-npm test verifica treino, cadastro, senha incorreta, confirmação de senha, e-mail duplicado, expiração/saída, limites de tentativas, isolamento de usuários, dados inválidos e conflitos de gravação. A interface foi conferida em navegador com tela móvel, incluindo entrada em um segundo navegador, salvamento, recarregamento, falha de conexão e nova tentativa.
+Execute npm test. As suítes cobrem regras de treino, as tabelas do domínio, autenticação, isolamento de contas, rollback de falhas, concorrência de gravação e recuperação do banco após reiniciar.
 
-tests/auth-ui.check.cjs usa Playwright e um servidor de desenvolvimento já aberto em http://127.0.0.1:5184. Configure REPWISE_PLAYWRIGHT e REPWISE_BROWSER para seus caminhos locais, se necessário. Os scripts antigos ui.check/ui.extra/appearance usam a antiga base estática e representam a validação da versão 0.4.
+O roteiro tests/auth-ui.check.cjs usa Playwright e Edge para conferir cadastro, acesso em dois contextos, salvamento, falha de conexão, conflito e saída. Para executá-lo, inicie o servidor na porta 5187 e configure REPWISE_PLAYWRIGHT com o caminho do pacote Playwright. REPWISE_BROWSER permite escolher o executável do navegador. Esses recursos são opcionais para os testes de interface.
 
-## Estrutura
+Na apresentação, demonstre cadastro, criação de ficha, execução de uma série, finalização, histórico e recarregamento. O assistente gera respostas por regras, registra consentimento e feedback e exige confirmação para criar a ficha sugerida. Mensagens, propostas e decisões são persistidas nas tabelas correspondentes.
 
-- index.html e src/: interface, regras de treino, efeitos e temas.
-- app/api/auth/: cadastro, login e saída por e-mail e senha.
-- lib/auth.mjs: senha, sessão e limites de tentativas.
-- app/api/account/ e lib/account-api.mjs: leitura e escrita autenticadas do JSON de cada conta.
-- db/schema.ts e drizzle/: esquema e migrações do banco.
-- worker/, vite.config.ts e scripts/: base Vinext/Sites para hospedagem.
-
-O assistente não chama uma LLM, não diagnostica sintomas e exige confirmação antes de criar uma ficha sugerida. Backups contêm seus registros: guarde-os em local privado. Os documentos de escopo e validação anteriores descrevem a etapa 0.4; esta página descreve a versão atual.
-
+As senhas usam PBKDF2-SHA512 com salt individual. A sessão autenticada dura até sete dias. Recuperação de senha, confirmação de e-mail e integração com um provedor externo de LLM são possibilidades de evolução.
